@@ -14,7 +14,7 @@ namespace EISCF_QueryNotification
 {
     public partial class frmMain : Form
     {
-        private string m_sUser;
+        private List<string> m_lUser;
         private bool m_blnIsQA;
         private bool m_blnIsExcerptorEditor;
 
@@ -62,11 +62,11 @@ namespace EISCF_QueryNotification
             string sUser = Environment.UserName;
 
 #if DEBUG
-            sUser = "ESCORO";
+            sUser = "1053";
 #endif
 
-            m_sUser = "";
-            if (!IsUserValid(sUser, ref m_sUser))
+            m_lUser = new List<string>();
+            if (!IsUserValid(sUser, ref m_lUser))
             {
                 //MessageBox.Show("Not a valid user id!", "Alert", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 this.Close();
@@ -76,7 +76,7 @@ namespace EISCF_QueryNotification
             m_blnIsQA = false;
             m_blnIsExcerptorEditor = false;
 
-            CheckUserTask(m_sUser, ref m_blnIsQA, ref m_blnIsExcerptorEditor);
+            CheckUserTask(m_lUser, ref m_blnIsQA, ref m_blnIsExcerptorEditor);
 
             if (!m_blnIsQA && !m_blnIsExcerptorEditor)
             {
@@ -103,7 +103,7 @@ namespace EISCF_QueryNotification
             DataTable dtResponded = new DataTable();
             if (m_blnIsExcerptorEditor)
             {
-                dtResponded = GetRespondedUser(m_sUser);
+                dtResponded = GetRespondedUser(m_lUser);
             }
 
             pnlNotification.Controls.Clear();
@@ -166,26 +166,25 @@ namespace EISCF_QueryNotification
             return dtList;
         }
 
-        private DataTable GetRespondedUser(string sUser)
+        private DataTable GetRespondedUser(List<string> lUser)
         {
             DataTable dtList = new DataTable();
 
-            string sQuery = "select Distinct ResponseUser from QueryHandling where [Status]='Responded' and QueryUser=@User";
+            string sQuery = $"select Distinct ResponseUser from QueryHandling where [Status]='Responded' and QueryUser in ('{string.Join("','", lUser.ToArray())}')";
 
             using (SqlDataAdapter daData = new SqlDataAdapter(sQuery, GlobalVar.sConnString))
             {
-                daData.SelectCommand.Parameters.AddWithValue("@User", sUser);
                 daData.Fill(dtList);
             }
 
             return dtList;
         }
 
-        private bool IsUserValid(string sUserID, ref string sUser)
+        private bool IsUserValid(string sUserID, ref List<string> lUsers)
         {
-            sUser = "";
+            lUsers = new List<string>();
 
-            string sQuery = "select top 1 ReaxysID from [ReaxysUserID] where UserID=@UserID";
+            string sQuery = "select ReaxysID from [ReaxysUserID] where UserID=@UserID and (ReaxysID is not NULL and ReaxysID != '')";
             DataTable dtUser = new DataTable();
             using (SqlDataAdapter daData = new SqlDataAdapter(sQuery, GlobalVar.sConnString))
             {
@@ -196,31 +195,45 @@ namespace EISCF_QueryNotification
             if (dtUser.Rows.Count <= 0)
                 return false;
 
-            sUser = Convert.ToString(dtUser.Rows[0]["ReaxysID"]);
+            for (int iIdx = 0; iIdx < dtUser.Rows.Count; iIdx++)
+            {
+                lUsers.Add(Convert.ToString(dtUser.Rows[iIdx]["ReaxysID"]));
+            }
 
-            return (!string.IsNullOrWhiteSpace(sUser));
+            return (lUsers.Count > 0);
         }
 
-        private void CheckUserTask(string sUserID, ref bool blnIsQA, ref bool blnIsExcerpEditor)
+        private void CheckUserTask(List<string> lUserID, ref bool blnIsQA, ref bool blnIsExcerpEditor)
         {
             blnIsQA = false;
             blnIsExcerpEditor = false;
 
-            string sQuery = "select IsQA, UserGroup from [Users] where UserID=@UserID";
+            string sUser = $"'{string.Join("','", lUserID.ToArray())}'";
+
+            string sQuery = $"select IsQA, UserGroup from [Users] where UserID in ({sUser})";
             DataTable dtUser = new DataTable();
             using (SqlDataAdapter daData = new SqlDataAdapter(sQuery, GlobalVar.sConnString))
             {
-                daData.SelectCommand.Parameters.AddWithValue("@UserID", sUserID);
                 daData.Fill(dtUser);
             }
 
             if (dtUser.Rows.Count <= 0)
                 return;
 
-            string sUserGroup = Convert.ToString(dtUser.Rows[0]["UserGroup"]);
+            blnIsQA = false;
+            blnIsExcerpEditor = false;
 
-            blnIsQA = Convert.ToBoolean(dtUser.Rows[0]["IsQA"]);
-            blnIsExcerpEditor = (sUserGroup.Equals("Excerptor", StringComparison.OrdinalIgnoreCase) || sUserGroup.Equals("Editor", StringComparison.OrdinalIgnoreCase));
+            for (int iIdx = 0; iIdx < dtUser.Rows.Count; iIdx++)
+            {
+                string sUserGroup = Convert.ToString(dtUser.Rows[iIdx]["UserGroup"]);
+                bool blnQA = Convert.ToBoolean(dtUser.Rows[iIdx]["IsQA"]);
+
+                if (blnQA)
+                    blnIsQA = true;
+
+                if (sUserGroup.Equals("Excerptor", StringComparison.OrdinalIgnoreCase) || sUserGroup.Equals("Editor", StringComparison.OrdinalIgnoreCase))
+                    blnIsExcerpEditor = true;
+            }
         }
 
         private void tmeTimer_Tick(object sender, EventArgs e)
