@@ -19,13 +19,22 @@ namespace EISCF_QueryNotification
         private bool m_blnIsExcerptorEditor;
 
         [DllImport("user32.dll")]
-        static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter,
-        int X, int Y, int cx, int cy, uint uFlags);
+        static extern bool SetWindowPos(
+            IntPtr hWnd,
+            IntPtr hWndInsertAfter,
+            int X, int Y, int cx, int cy,
+            uint uFlags);
 
         static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
-        const uint SWP_NOSIZE = 0x0001;
         const uint SWP_NOMOVE = 0x0002;
-        const uint TOPMOST_FLAGS = SWP_NOMOVE | SWP_NOSIZE;
+        const uint SWP_NOSIZE = 0x0001;
+        const uint SWP_SHOWWINDOW = 0x0040;
+
+        private void ForceTopMost()
+        {
+            SetWindowPos(this.Handle, HWND_TOPMOST, 0, 0, 0, 0,
+                SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+        }
 
         protected override CreateParams CreateParams
         {
@@ -45,18 +54,25 @@ namespace EISCF_QueryNotification
 
         private void frmMain_Load(object sender, EventArgs e)
         {
-            MoveToLowerRightCorner();
+            MoveToUpperRightCorner();
         }
 
-        public void MoveToLowerRightCorner()
+        public void MoveToUpperRightCorner()
         {
-            int x = Screen.PrimaryScreen.WorkingArea.Width - (this.Width - 5);
-            int y = Screen.PrimaryScreen.WorkingArea.Height - (this.Height - 5);
+            int x = Screen.PrimaryScreen.WorkingArea.Right - this.Width;
+            int y = Screen.PrimaryScreen.WorkingArea.Top + 2;
+
             this.Location = new Point(x, y);
         }
 
         private void frmMain_Shown(object sender, EventArgs e)
         {
+            this.TopMost = true;
+            this.StartPosition = FormStartPosition.Manual;
+            this.ShowInTaskbar = true;
+
+            ForceTopMost();
+
             this.Refresh();
 
             string sUser = Environment.UserName;
@@ -146,8 +162,10 @@ namespace EISCF_QueryNotification
                 }
             }
 
-            this.Height = iHeight + 45;
-            MoveToLowerRightCorner();
+            if (iHeight + 45 > 104)
+                this.Height = iHeight + 45;
+
+            MoveToUpperRightCorner();
 
             tmeTimer.Start();
         }
@@ -247,7 +265,7 @@ namespace EISCF_QueryNotification
             {
                 Control oControl = pnlNotification.Controls[0];
                 this.Height = (oControl.Height * pnlNotification.Controls.Count) + 45;
-                MoveToLowerRightCorner();
+                MoveToUpperRightCorner();
             }
         }
     }

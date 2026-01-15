@@ -40,7 +40,7 @@
             this.pnlNotification.Font = new System.Drawing.Font("Tahoma", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.pnlNotification.Location = new System.Drawing.Point(0, 0);
             this.pnlNotification.Name = "pnlNotification";
-            this.pnlNotification.Size = new System.Drawing.Size(268, 76);
+            this.pnlNotification.Size = new System.Drawing.Size(283, 65);
             this.pnlNotification.TabIndex = 0;
             this.pnlNotification.ControlRemoved += new System.Windows.Forms.ControlEventHandler(this.pnlNotification_ControlRemoved);
             // 
@@ -53,7 +53,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(268, 76);
+            this.ClientSize = new System.Drawing.Size(283, 65);
             this.Controls.Add(this.pnlNotification);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
